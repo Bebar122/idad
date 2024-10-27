@@ -265,7 +265,7 @@ async def keep_alive():
             await asyncio.sleep(60)  # Периодичность запросов (в секундах)
 
 # Запускаем keep_alive в отдельном потоке
-keep_alive_task = asyncio.create_task(keep_alive())
+#keep_alive_task = asyncio.create_task(keep_alive())
 
 
 # Создание экземпляра бота
@@ -276,6 +276,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     print(f'{bot.user.name} запущен!')
+    bot.loop.create_task(keep_alive())
 
 
 
