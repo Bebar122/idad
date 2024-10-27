@@ -13,7 +13,7 @@ import requests
 import threading
 #from PIL import Image
 #from io import BytesIO
-#import aiohttp
+import aiohttp
 from selenium.webdriver.chrome.options import Options
 
 options = Options()
@@ -256,6 +256,16 @@ def run_server():
 server_thread = threading.Thread(target=run_server)
 server_thread.start()
 
+
+async def keep_alive():
+    async with aiohttp.ClientSession() as session:
+        while True:
+            async with session.get('http://0.0.0.0:10000') as response:
+                print(f"Keep-alive response status: {response.status}")
+            await asyncio.sleep(60)  # Периодичность запросов (в секундах)
+
+# Запускаем keep_alive в отдельном потоке
+keep_alive_task = asyncio.create_task(keep_alive())
 
 
 # Создание экземпляра бота
