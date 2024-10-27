@@ -57,7 +57,6 @@ def get_player_avatar(user_id):
 
 
 
-# Функция для получения аватарок игроков по их токенам
 def get_avatars_by_player_tokens(player_tokens):
     players_data = [
         {
@@ -70,16 +69,22 @@ def get_avatars_by_player_tokens(player_tokens):
     
     url = 'https://thumbnails.roblox.com/v1/batch'
     headers = {'Content-Type': 'application/json'}
-    response = requests.post(url, json=players_data, headers=headers)
-
-    if response.status_code == 200:
-        avatar_data = response.json().get('data', [])
-        if avatar_data:
-            #print(f"[DEBUG] Получено {len(avatar_data)} аватарок по токенам")
-            return avatar_data
-    else:
-        print(f"[ERROR] Ошибка при получении аватарок по токенам. Статус: {response.status_code}")
     
+    # Попробуем несколько раз, если получаем ошибку 429
+    for attempt in range(5):  # Попробовать 5 раз
+        response = requests.post(url, json=players_data, headers=headers)
+
+        if response.status_code == 200:
+            avatar_data = response.json().get('data', [])
+            if avatar_data:
+                return avatar_data
+        elif response.status_code == 429:
+            print("[WARNING] Достигнут лимит запросов. Ждем перед повторной попыткой...")
+            time.sleep(5)  # Ждем 5 секунд перед повтором
+        else:
+            print(f"[ERROR] Ошибка при получении аватарок по токенам. Статус: {response.status_code}")
+            break  # Выходим из цикла при других ошибках
+
     return None
 
 
