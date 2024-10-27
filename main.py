@@ -8,6 +8,7 @@ import asyncio
 import time
 import os
 from datetime import datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import requests
 #from PIL import Image
 #from io import BytesIO
@@ -234,6 +235,26 @@ def format_players_status(players_status):
         formatted_output += f'{emoji}{player_info["name"]}: {player_info["status"]}\n'
 
     return formatted_output.strip()  # Удалим лишние переводы строк в конце
+
+
+
+# HTTP-сервер для обработки запросов
+class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(b"Discord Bot is running!")
+
+def run_server():
+    server_address = ('0.0.0.0', int(os.environ.get("PORT", 5000)))
+    httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
+    httpd.serve_forever()
+
+# Запускаем HTTP-сервер в отдельном потоке
+server_thread = threading.Thread(target=run_server)
+server_thread.start()
+
 
 
 # Создание экземпляра бота
