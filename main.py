@@ -10,6 +10,7 @@ import os
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import requests
+import threading
 #from PIL import Image
 #from io import BytesIO
 #import aiohttp
@@ -247,7 +248,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Discord Bot is running!")
 
 def run_server():
-    server_address = ('0.0.0.0', int(os.environ.get("PORT", 10000)))
+    server_address = ('0.0.0.0', int(os.environ.get("PORT", 5000)))
     httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
     httpd.serve_forever()
 
