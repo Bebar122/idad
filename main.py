@@ -45,7 +45,7 @@ ROBLOX_COOKIE = os.getenv("COOKIE")
 USER_IDS_FILE = "user_ids.txt"
 
 # Разрешённые юзернеймы
-ALLOWED_USERNAMES = ["YourUsername#1234", "AnotherUser#5678"]
+ALLOWED_USERNAMES = ["0banana_", "AnotherUser#5678"]
 
 # Функция для загрузки ID из файла
 def load_user_ids():
