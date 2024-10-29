@@ -307,33 +307,28 @@ async def on_ready():
 
 
 # Асинхронная функция для постоянного обновления статусов игроков
-async def update_status_loop(message, user_ids):
+async def update_status_loop(message, user_ids, link):
     while True:
+        # Получаем обновленный список user_ids из указанного сообщения
+        updated_user_ids = await get_user_ids_from_message(link)
+        if updated_user_ids:
+            user_ids = updated_user_ids  # Обновляем список пользователей
+
         # Обновляем статусы игроков
         formatted_message = await asyncio.to_thread(check_players_status, driver, user_ids)
-
         players_status = format_players_status(formatted_message)
         
-    
         response = players_status
         
-        #current_datetime = datetime.now().time()
-        #response += f"\nвремя последнего обновления: {current_datetime}\n"
-
-
         # Получаем текущее время в Unix timestamp
         current_timestamp = int(datetime.utcnow().timestamp())
         response += f"\nВремя последнего обновления: <t:{current_timestamp}:R>\n"
-        
         
         # Редактируем сообщение
         await message.edit(content=response)
 
         # Ждем 60 секунд перед следующим обновлением
-        #await asyncio.sleep(3)
-
-
-
+        #await asyncio.sleep(60)
 
 firstStart = True
 
@@ -350,7 +345,6 @@ async def check_status(ctx, link: str):
         await ctx.send('проверка запущена')
         firstStart = False
         formatted_message = await asyncio.to_thread(check_players_status, driver, user_ids)
-
         players_status = format_players_status(formatted_message)
 
         response = players_status
@@ -359,7 +353,8 @@ async def check_status(ctx, link: str):
         sent_message = await ctx.send(response)
 
         # Запускаем цикл для обновления статусов
-        await update_status_loop(sent_message, user_ids)
+        await update_status_loop(sent_message, user_ids, link)
+
 
 # Запуск бота
 bot.run(DISCORD_TOKEN)
