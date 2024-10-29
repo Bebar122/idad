@@ -14,6 +14,7 @@ import threading
 #from PIL import Image
 #from io import BytesIO
 import aiohttp
+import re
 from selenium.webdriver.chrome.options import Options
 
 options = Options()
@@ -36,36 +37,31 @@ ROBLOX_COOKIE = os.getenv("COOKIE")
 
 
 
+# Функция для извлечения ID канала и сообщения из ссылки
+def extract_ids_from_link(link):
+    match = re.search(r'channels/(\d+)/(\d+)/(\d+)', link)
+    if match:
+        guild_id = int(match.group(1))
+        channel_id = int(match.group(2))
+        message_id = int(match.group(3))
+        return channel_id, message_id
+    return None, None
 
 
-
-
-
-# Путь к файлу с ID пользователей
-USER_IDS_FILE = "user_ids.txt"
-
-# Разрешённые юзернеймы
-ALLOWED_USERNAMES = ["0banana_", "AnotherUser#5678"]
-
-# Функция для загрузки ID из файла
-def load_user_ids():
-    if not os.path.exists(USER_IDS_FILE):
+# Функция для получения user_ids из сообщения по ссылке
+async def get_user_ids_from_message(link):
+    channel_id, message_id = extract_ids_from_link(link)
+    if not channel_id or not message_id:
         return []
-    with open(USER_IDS_FILE, "r") as f:
-        return [int(line.strip()) for line in f if line.strip().isdigit()]
 
-# Функция для сохранения ID в файл
-def save_user_ids():
-    with open(USER_IDS_FILE, "w") as f:
-        for user_id in user_ids:
-            f.write(f"{user_id}\n")
+    channel = bot.get_channel(channel_id)
+    if not channel:
+        return []
 
-# Загружаем список user_ids при запуске
-user_ids = load_user_ids()
-
-
-
-
+    message = await channel.fetch_message(message_id)
+    # Преобразуем содержимое сообщения в список user_ids (ожидается, что они будут разделены запятыми)
+    user_ids = [int(user_id.strip()) for user_id in message.content.split(',') if user_id.strip().isdigit()]
+    return user_ids
 
 
 def get_player_avatar(user_id):
@@ -341,57 +337,29 @@ async def update_status_loop(message, user_ids):
 
 firstStart = True
 
-# Проверка на доступ к команде
-def is_user_allowed(ctx):
-    return str(ctx.author) in ALLOWED_USERNAMES
-
-# Команда для проверки статуса игроков и запуска цикла обновления
 @bot.command(name='check_status')
-async def check_status(ctx):
+async def check_status(ctx, link: str):
     global firstStart
-    if not is_user_allowed(ctx):
-        await ctx.send("У вас нет доступа к этой команде.")
-        return
     if firstStart:
+        # Получаем user_ids из указанного сообщения
+        user_ids = await get_user_ids_from_message(link)
+        if not user_ids:
+            await ctx.send("Не удалось получить список пользователей из сообщения.")
+            return
+
         await ctx.send('проверка запущена')
         firstStart = False
-
-        # Формируем и отправляем начальное сообщение
         formatted_message = await asyncio.to_thread(check_players_status, driver, user_ids)
+
         players_status = format_players_status(formatted_message)
+
         response = players_status
 
+        # Отправляем ответ в канал и сохраняем сообщение
         sent_message = await ctx.send(response)
 
         # Запускаем цикл для обновления статусов
         await update_status_loop(sent_message, user_ids)
-
-
-# Команда для добавления ID пользователя
-@bot.command(name='add_user')
-async def add_user(ctx, user_id: int):
-    if not is_user_allowed(ctx):
-        await ctx.send("У вас нет доступа к этой команде.")
-        return
-    if user_id not in user_ids:
-        user_ids.append(user_id)
-        save_user_ids()  # Сохраняем обновлённый список
-        await ctx.send(f"Пользователь с ID {user_id} добавлен в список.")
-    else:
-        await ctx.send(f"Пользователь с ID {user_id} уже есть в списке.")
-
-# Команда для удаления ID пользователя
-@bot.command(name='remove_user')
-async def remove_user(ctx, user_id: int):
-    if not is_user_allowed(ctx):
-        await ctx.send("У вас нет доступа к этой команде.")
-        return
-    if user_id in user_ids:
-        user_ids.remove(user_id)
-        save_user_ids()  # Сохраняем обновлённый список
-        await ctx.send(f"Пользователь с ID {user_id} удалён из списка.")
-    else:
-        await ctx.send(f"Пользователь с ID {user_id} не найден в списке.")
 
 # Запуск бота
 bot.run(DISCORD_TOKEN)
