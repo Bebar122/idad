@@ -13,7 +13,7 @@ import requests
 import threading
 #from PIL import Image
 #from io import BytesIO
-#import aiohttp
+import aiohttp
 from selenium.webdriver.chrome.options import Options
 
 options = Options()
@@ -257,12 +257,12 @@ server_thread = threading.Thread(target=run_server)
 server_thread.start()
 
 
-#async def keep_alive():
-#    async with aiohttp.ClientSession() as session:
-#        while True:
-#            async with session.get('http://0.0.0.0:10000') as response:
-#                print(f"Keep-alive response status: {response.status}")
-#            await asyncio.sleep(60)  # Периодичность запросов (в секундах)
+async def keep_alive():
+    async with aiohttp.ClientSession() as session:
+        while True:
+            async with session.get('https://idad.onrender.com') as response:
+                print(f"Keep-alive response status: {response.status}")
+            await asyncio.sleep(60)  # Периодичность запросов (в секундах)
 
 # Запускаем keep_alive в отдельном потоке
 #keep_alive_task = asyncio.create_task(keep_alive())
@@ -276,7 +276,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     print(f'{bot.user.name} запущен!')
-    #bot.loop.create_task(keep_alive())
+    bot.loop.create_task(keep_alive())
 
 
 
@@ -327,4 +327,4 @@ async def check_status(ctx):
 bot.run(DISCORD_TOKEN)
 
 # Закрываем браузер после завершения программы
-driver.quit()
+#driver.quit()
