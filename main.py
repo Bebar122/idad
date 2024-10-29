@@ -290,8 +290,16 @@ async def update_status_loop(message, user_ids):
         
     
         response = players_status
-        current_datetime = datetime.now().time()
-        response += f"\nвремя последнего обновления: {current_datetime}\n"
+        
+        #current_datetime = datetime.now().time()
+        #response += f"\nвремя последнего обновления: {current_datetime}\n"
+
+
+        # Получаем текущее время в Unix timestamp
+        current_timestamp = int(datetime.utcnow().timestamp())
+        response += f"\nВремя последнего обновления: <t:{current_timestamp}:R>\n"
+        
+        
         # Редактируем сообщение
         await message.edit(content=response)
 
