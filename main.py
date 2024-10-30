@@ -223,6 +223,7 @@ def get_player_info(driver, user_id):
 def check_players_status(driver, user_ids):
     players_status = {}  # Теперь ключом будет user_id
     playing_players = {}  # Словарь для хранения ID игроков, которые играют и их аватарок
+    found_players_message = ""  # Сообщение для найденных игроков
 
     for user_id in user_ids:
         player_name, player_status, avatar_url = get_player_info(driver, user_id)
@@ -244,8 +245,11 @@ def check_players_status(driver, user_ids):
                 players_status[user_id]['status'] = f'играет в lbb\n├ID сервера: {server_id}\n' + \
                                                     f'└https://www.roblox.com/games/start?placeId=16302670534&launchData=662417684/{server_id}'
                 print(f'Игрок {players_status[user_id]["name"]} найден на сервере {server_id}')
+                # Добавляем игрока в сообщение
+                found_players_message += f'{players_status[user_id]["name"]} играет в lbb на сервере {server_id}\n'
 
-    return players_status
+    return players_status, found_players_message
+
 
 def format_players_status(players_status):
     formatted_output = ""
@@ -310,29 +314,28 @@ async def on_ready():
 async def update_status_loop(message, user_ids, link):
     while True:
         # Обновляем статусы игроков
-        formatted_message = await asyncio.to_thread(check_players_status, driver, user_ids)
+        formatted_message, found_players_message = await asyncio.to_thread(check_players_status, driver, user_ids)
 
         players_status = format_players_status(formatted_message)
         
-    
         response = players_status
         
-        #current_datetime = datetime.now().time()
-        #response += f"\nвремя последнего обновления: {current_datetime}\n"
-
-
         # Получаем текущее время в Unix timestamp
         current_timestamp = int(datetime.utcnow().timestamp())
         response += f"\nВремя последнего обновления: <t:{current_timestamp}:R>\n"
         
-        
         # Редактируем сообщение
         await message.edit(content=response)
+        
+        # Если найдены игроки, отправляем сообщение с упоминанием
+        if found_players_message:
+            await message.channel.send(f"<@0banana_>\n{found_players_message}")
+
+        # Обновляем user_ids из сообщения
         user_ids = await get_user_ids_from_message(link)
+
         # Ждем 60 секунд перед следующим обновлением
-        #await asyncio.sleep(3)
-
-
+        #await asyncio.sleep(60)
 
 
 firstStart = True
@@ -349,7 +352,7 @@ async def check_status(ctx, link: str):
 
         await ctx.send('проверка запущена')
         firstStart = False
-        formatted_message = await asyncio.to_thread(check_players_status, driver, user_ids)
+        formatted_message, found_players_message = await asyncio.to_thread(check_players_status, driver, user_ids)
 
         players_status = format_players_status(formatted_message)
 
@@ -360,6 +363,7 @@ async def check_status(ctx, link: str):
 
         # Запускаем цикл для обновления статусов
         await update_status_loop(sent_message, user_ids, link)
+
 
 # Запуск бота
 bot.run(DISCORD_TOKEN)
