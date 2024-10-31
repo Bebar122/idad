@@ -329,7 +329,7 @@ async def update_status_loop(message, user_ids, link):
         
         # Если найдены игроки, отправляем сообщение с упоминанием
         if found_players_message:
-            await message.channel.send(f"<@0banana_>\n{found_players_message}")
+            await message.channel.send(f"@0banana_\n{found_players_message}")
 
         # Обновляем user_ids из сообщения
         user_ids = await get_user_ids_from_message(link)
