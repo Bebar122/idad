@@ -311,7 +311,7 @@ async def on_ready():
 
 
 # Асинхронная функция для постоянного обновления статусов игроков
-async def update_status_loop(message, user_ids, link):
+async def update_status_loop(message, user_ids, link, author):
     while True:
         # Обновляем статусы игроков
         formatted_message, found_players_message = await asyncio.to_thread(check_players_status, driver, user_ids)
@@ -327,9 +327,9 @@ async def update_status_loop(message, user_ids, link):
         # Редактируем сообщение
         await message.edit(content=response)
         
-        # Если найдены игроки, отправляем сообщение с упоминанием
+        # Если найдены игроки, отправляем сообщение с упоминанием автора команды
         if found_players_message:
-            await message.channel.send(f"@0banana_\n{found_players_message}")
+            await message.channel.send(f"{author.mention}\n{found_players_message}")
 
         # Обновляем user_ids из сообщения
         user_ids = await get_user_ids_from_message(link)
@@ -361,8 +361,8 @@ async def check_status(ctx, link: str):
         # Отправляем ответ в канал и сохраняем сообщение
         sent_message = await ctx.send(response)
 
-        # Запускаем цикл для обновления статусов
-        await update_status_loop(sent_message, user_ids, link)
+        # Запускаем цикл для обновления статусов, передавая автора команды
+        await update_status_loop(sent_message, user_ids, link, ctx.author)
 
 
 # Запуск бота
