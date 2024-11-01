@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord.ext import tasks
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
@@ -303,21 +304,38 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+firstStart = True
+# Переменные для сохранения параметров
+saved_message = None
+saved_user_ids = None
+saved_link = None
+saved_author = None
+
 @bot.event
 async def on_ready():
     print(f'{bot.user.name} запущен!')
     bot.loop.create_task(keep_alive())
-
+    
+    # Проверяем, сохранены ли параметры для перезапуска цикла
+    if saved_message and saved_user_ids and saved_link and saved_author:
+        bot.loop.create_task(update_status_loop(saved_message, saved_user_ids, saved_link, saved_author))
 
 
 # Асинхронная функция для постоянного обновления статусов игроков
 async def update_status_loop(message, user_ids, link, author):
+    global saved_message, saved_user_ids, saved_link, saved_author
+
+    # Сохраняем параметры для возможного перезапуска
+    saved_message = message
+    saved_user_ids = user_ids
+    saved_link = link
+    saved_author = author
+    
     while True:
         # Обновляем статусы игроков
         formatted_message, found_players_message = await asyncio.to_thread(check_players_status, driver, user_ids)
 
         players_status = format_players_status(formatted_message)
-        
         response = players_status
         
         # Получаем текущее время в Unix timestamp
@@ -334,15 +352,11 @@ async def update_status_loop(message, user_ids, link, author):
         # Обновляем user_ids из сообщения
         user_ids = await get_user_ids_from_message(link)
 
-        # Ждем 60 секунд перед следующим обновлением
-        #await asyncio.sleep(60)
-
-
-firstStart = True
 
 @bot.command(name='check_status')
 async def check_status(ctx, link: str):
-    global firstStart
+    global firstStart, saved_message, saved_user_ids, saved_link, saved_author
+
     if firstStart:
         # Получаем user_ids из указанного сообщения
         user_ids = await get_user_ids_from_message(link)
@@ -355,13 +369,18 @@ async def check_status(ctx, link: str):
         formatted_message, found_players_message = await asyncio.to_thread(check_players_status, driver, user_ids)
 
         players_status = format_players_status(formatted_message)
-
         response = players_status
 
         # Отправляем ответ в канал и сохраняем сообщение
         sent_message = await ctx.send(response)
 
-        # Запускаем цикл для обновления статусов, передавая автора команды
+        # Сохраняем параметры для перезапуска
+        saved_message = sent_message
+        saved_user_ids = user_ids
+        saved_link = link
+        saved_author = ctx.author
+
+        # Запускаем цикл для обновления статусов
         await update_status_loop(sent_message, user_ids, link, ctx.author)
 
 
