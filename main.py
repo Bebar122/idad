@@ -206,18 +206,18 @@ def get_player_info(driver, user_id):
         status_class = status_element.get_attribute('class')
 
         if 'icon-game' in status_class:
-            player_status = 'играет в игру'
+            player_status = 'playing'
             avatar_url = get_player_avatar(user_id)
             return player_name, player_status, avatar_url
         elif 'icon-online' in status_class:
-            player_status = 'онлайн'
+            player_status = 'online'
             return player_name, player_status, None
         else:
-            player_status = 'не в сети'
+            player_status = 'offline'
             return player_name, player_status, None
     except Exception as e:
         print(f"Не удалось получить информацию о игроке с ID {user_id}:")
-        return player_name, 'не в сети', None
+        return player_name, 'offline', None
 
 def check_players_status(driver, user_ids):
     players_status = {}  # Теперь ключом будет user_id
@@ -231,7 +231,7 @@ def check_players_status(driver, user_ids):
                 'name': player_name,
                 'status': player_status
             }
-            if player_status == 'играет в игру' and avatar_url:
+            if player_status == 'playing' and avatar_url:
                 playing_players[user_id] = avatar_url
         else:
             print(f"Не удалось получить статус игрока с ID {user_id}.")
@@ -241,11 +241,11 @@ def check_players_status(driver, user_ids):
         found_players = find_players_on_servers(playing_players)
         for user_id, server_id in found_players.items():
             if user_id in players_status:
-                players_status[user_id]['status'] = f'играет в lbb\n├ID сервера: {server_id}\n' + \
+                players_status[user_id]['status'] = f'playing lbb\n├server ID: {server_id}\n' + \
                                                     f'└https://www.roblox.com/games/start?placeId=16302670534&launchData=662417684/{server_id}'
-                print(f'Игрок {players_status[user_id]["name"]} найден на сервере {server_id}')
+                print(f'Игрок {players_status[user_id]["name"]} found on the server {server_id}')
                 # Добавляем игрока в сообщение
-                found_players_message += f'{players_status[user_id]["name"]} играет в lbb на сервере {server_id}\n'
+                found_players_message += f'**{players_status[user_id]["name"]}** playing lbb on the server {server_id}\n'
 
     return players_status, found_players_message
 
@@ -253,11 +253,11 @@ def check_players_status(driver, user_ids):
 def format_players_status(players_status):
     formatted_output = ""
     for player_info in players_status.values():
-        if 'играет в lbb' in player_info['status']:
+        if 'playing lbb' in player_info['status']:
             emoji = ":white_check_mark:"
-        elif 'играет в игру' in player_info['status']:
+        elif 'playing' in player_info['status']:
             emoji = ":green_square:"
-        elif 'онлайн' in player_info['status']:
+        elif 'online' in player_info['status']:
             emoji = ":blue_square:"    
         else:
             emoji = ":red_square:"
@@ -338,7 +338,7 @@ async def update_status_loop(message, user_ids, link, author):
         
         # Получаем текущее время в Unix timestamp
         current_timestamp = int(datetime.utcnow().timestamp())
-        response += f"\nВремя последнего обновления: <t:{current_timestamp}:R>\n"
+        response += f"\nLast update time: <t:{current_timestamp}:R>\n"
         
         # Редактируем сообщение
         await message.edit(content=response)
@@ -362,7 +362,7 @@ async def check_status(ctx, link: str):
             await ctx.send("Не удалось получить список пользователей из сообщения.")
             return
 
-        await ctx.send('проверка запущена')
+        await ctx.send('start')
         firstStart = False
         formatted_message, found_players_message = await asyncio.to_thread(check_players_status, driver, user_ids)
 
