@@ -112,22 +112,20 @@ def get_avatars_by_player_tokens(player_tokens):
 
 def fetch_servers(place_id, cursor='', attempts=0, max_attempts=60):
     url = f'https://games.roblox.com/v1/games/{place_id}/servers/Public?limit=100&cursor={cursor}'
-    response = requests.get(url)
-
-    if response.status_code != 200 or attempts >= max_attempts:
-        #print(f"[ERROR] Ошибка при получении серверов. Попытка: {attempts}")
-        return None, None  # Либо ошибка, либо превышено количество попыток
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] Ошибка при получении серверов: {e}")
+        if attempts < max_attempts:
+            time.sleep(1)  # Пауза перед повторной попыткой
+            return fetch_servers(place_id, cursor, attempts + 1)
+        else:
+            return None, None
 
     data = response.json()
     next_page_cursor = data.get('nextPageCursor')
     servers = data.get('data', [])
-
-    print(f"[DEBUG] Получено {len(servers)} серверов на попытке {attempts}. Следующий курсор: {next_page_cursor}")
-
-    if not servers:  # Если серверов нет, делаем паузу и пытаемся снова
-        time.sleep(1)
-        return fetch_servers(place_id, cursor, attempts + 1)
-
     return servers, next_page_cursor
 
 # Функция для поиска игрока на сервере через сравнение аватарок с использованием токенов
