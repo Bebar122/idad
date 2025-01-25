@@ -241,11 +241,11 @@ def check_players_status(driver, user_ids):
         found_players = find_players_on_servers(playing_players)
         for user_id, server_id in found_players.items():
             if user_id in players_status:
-                players_status[user_id]['status'] = f'playing lbb\n├server ID: \'{server_id}\'\n' + \
+                players_status[user_id]['status'] = f'playing lbb\n├server ID: `{server_id}`\n' + \
                                                     f'└https://www.roblox.com/games/start?placeId=16302670534&launchData=662417684/{server_id}'
                 print(f'Игрок {players_status[user_id]["name"]} found on the server {server_id}')
                 # Добавляем игрока в сообщение
-                found_players_message += f'**{players_status[user_id]["name"]}** playing lbb on the server \'{server_id}\'\n'
+                found_players_message += f'**{players_status[user_id]["name"]}** playing lbb on the server `{server_id}`\n'
 
     return players_status, found_players_message
 
