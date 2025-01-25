@@ -241,11 +241,11 @@ def check_players_status(driver, user_ids):
         found_players = find_players_on_servers(playing_players)
         for user_id, server_id in found_players.items():
             if user_id in players_status:
-                players_status[user_id]['status'] = f'playing lbb\n├server ID: {server_id}\n' + \
+                players_status[user_id]['status'] = f'playing lbb\n├server ID: \'{server_id}\'\n' + \
                                                     f'└https://www.roblox.com/games/start?placeId=16302670534&launchData=662417684/{server_id}'
                 print(f'Игрок {players_status[user_id]["name"]} found on the server {server_id}')
                 # Добавляем игрока в сообщение
-                found_players_message += f'**{players_status[user_id]["name"]}** playing lbb on the server {server_id}\n'
+                found_players_message += f'**{players_status[user_id]["name"]}** playing lbb on the server \'{server_id}\'\n'
 
     return players_status, found_players_message
 
@@ -308,6 +308,7 @@ saved_message = None
 saved_user_ids = None
 saved_link = None
 saved_author = None
+saved_channelmsg = None
 
 @bot.event
 async def on_ready():
@@ -315,19 +316,20 @@ async def on_ready():
     bot.loop.create_task(keep_alive())
     
     # Проверяем, сохранены ли параметры для перезапуска цикла
-    if saved_message and saved_user_ids and saved_link and saved_author:
-        bot.loop.create_task(update_status_loop(saved_message, saved_user_ids, saved_link, saved_author))
+    if saved_message and saved_user_ids and saved_link and saved_author and saved_channelmsg:
+        bot.loop.create_task(update_status_loop(saved_message, saved_user_ids, saved_link, saved_author, saved_channelmsg))
 
 
 # Асинхронная функция для постоянного обновления статусов игроков
-async def update_status_loop(message, user_ids, link, author):
-    global saved_message, saved_user_ids, saved_link, saved_author
+async def update_status_loop(message, user_ids, link, author, channelmsg):
+    global saved_message, saved_user_ids, saved_link, saved_author, saved_channelmsg
 
     # Сохраняем параметры для возможного перезапуска
     saved_message = message
     saved_user_ids = user_ids
     saved_link = link
     saved_author = author
+    saved_channelmsg = channelmsg
     
     while True:
         # Обновляем статусы игроков
@@ -345,15 +347,21 @@ async def update_status_loop(message, user_ids, link, author):
         
         # Если найдены игроки, отправляем сообщение с упоминанием автора команды
         if found_players_message:
-            await message.channel.send(f"{author.mention}\n{found_players_message}")
+            channel_id = int(channelmsg)  # Преобразование строки в число
+            channel = bot.get_channel(channel_id)
+            
+            if channel is not None:
+                await channel.send(f"{author.mention}\n{found_players_message}")
+            else:
+                await message.channel.send(f"{author.mention}\n{found_players_message}")
 
         # Обновляем user_ids из сообщения
         user_ids = await get_user_ids_from_message(link)
 
 
 @bot.command(name='check_status')
-async def check_status(ctx, link: str):
-    global firstStart, saved_message, saved_user_ids, saved_link, saved_author
+async def check_status(ctx, link: str, channelmsg: str):
+    global firstStart, saved_message, saved_user_ids, saved_link, saved_author, saved_channelmsg
 
     if firstStart:
         # Получаем user_ids из указанного сообщения
@@ -377,9 +385,10 @@ async def check_status(ctx, link: str):
         saved_user_ids = user_ids
         saved_link = link
         saved_author = ctx.author
+        saved_channelmsg = channelmsg
 
         # Запускаем цикл для обновления статусов
-        await update_status_loop(sent_message, user_ids, link, ctx.author)
+        await update_status_loop(sent_message, user_ids, link, ctx.author, channelmsg)
 
 
 # Запуск бота
