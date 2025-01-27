@@ -5,6 +5,9 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import asyncio
 import time
 import os
@@ -195,29 +198,51 @@ set_roblox_cookie(driver)
 # Функция для получения информации о игроке
 def get_player_info(driver, user_id):
     url = f'https://www.roblox.com/users/{user_id}/profile'
-    driver.get(url)
-    time.sleep(5)
-
+    
     try:
-        name_element = driver.find_element(By.CSS_SELECTOR, 'h1.profile-name.text-overflow')
-        player_name = name_element.text
+        # Устанавливаем тайм-аут загрузки страницы
+        driver.set_page_load_timeout(60)
+        driver.get(url)
 
-        status_element = driver.find_element(By.CSS_SELECTOR, 'a.avatar-status span')
-        status_class = status_element.get_attribute('class')
+        # Инициализируем переменные
+        player_name = None
+        player_status = 'offline'
+        avatar_url = None
 
-        if 'icon-game' in status_class:
-            player_status = 'playing'
-            avatar_url = get_player_avatar(user_id)
-            return player_name, player_status, avatar_url
-        elif 'icon-online' in status_class:
-            player_status = 'online'
-            return player_name, player_status, None
-        else:
-            player_status = 'offline'
-            return player_name, player_status, None
+        wait = WebDriverWait(driver, 15)  # Максимальное ожидание в 15 секунд
+
+        # Получаем имя игрока
+        try:
+            name_element = wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'h1.profile-name.text-overflow'))
+            )
+            player_name = name_element.text.strip()  # Убираем лишние пробелы
+        except TimeoutException:
+            print(f"Не удалось найти имя игрока с ID {user_id}.")
+
+        # Проверяем статус игрока
+        try:
+            status_element = wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'a.avatar-status span'))
+            )
+            status_class = status_element.get_attribute('class')
+            
+            if 'icon-game' in status_class:
+                player_status = 'playing'
+                avatar_url = get_player_avatar(user_id)  # Предполагается, что эта функция существует
+            elif 'icon-online' in status_class:
+                player_status = 'online'
+        except TimeoutException:
+            print(f"Статус игрока с ID {user_id} не найден. Устанавливаю 'offline'.")
+
+        return player_name, player_status, avatar_url
+
+    except TimeoutException:
+        print(f"Ошибка: превышен тайм-аут при загрузке страницы {url}.")
+        return None, 'offline', None
     except Exception as e:
-        print(f"Не удалось получить информацию о игроке с ID {user_id}:")
-        return player_name, 'offline', None
+        print(f"Произошла ошибка при обработке игрока с ID {user_id}: {e}")
+        return None, 'offline', None
 
 def check_players_status(driver, user_ids):
     players_status = {}  # Теперь ключом будет user_id
