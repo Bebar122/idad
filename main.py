@@ -19,6 +19,7 @@ import threading
 #from io import BytesIO
 import aiohttp
 import re
+import json
 from selenium.webdriver.chrome.options import Options
 
 options = Options()
@@ -39,6 +40,26 @@ DISCORD_TOKEN = os.getenv("TOKEN")
 ROBLOX_COOKIE = os.getenv("COOKIE")
 
 
+
+config_file = "config.json"
+
+def save_config():
+    config = {
+        "saved_link": saved_link,
+        "saved_channelmsg": saved_channelmsg,
+        "saved_author": saved_author.id if saved_author else None
+    }
+    with open(config_file, "w") as f:
+        json.dump(config, f)
+
+def load_config():
+    global saved_link, saved_channelmsg, saved_author
+    if os.path.exists(config_file):
+        with open(config_file, "r") as f:
+            config = json.load(f)
+            saved_link = config.get("saved_link")
+            saved_channelmsg = config.get("saved_channelmsg")
+            saved_author = config.get("saved_author")  # ID автора
 
 
 # Функция для извлечения ID канала и сообщения из ссылки
@@ -337,12 +358,28 @@ saved_channelmsg = None
 
 @bot.event
 async def on_ready():
+    global firstStart, saved_author
+
     print(f'{bot.user.name} запущен!')
     bot.loop.create_task(keep_alive())
-    
-    # Проверяем, сохранены ли параметры для перезапуска цикла
-    if saved_message and saved_user_ids and saved_link and saved_author and saved_channelmsg:
-        bot.loop.create_task(update_status_loop(saved_message, saved_user_ids, saved_link, saved_author, saved_channelmsg))
+
+    load_config()  # Загружаем сохранённые параметры
+
+    if saved_link and saved_channelmsg:
+        firstStart = False
+        user_ids = await get_user_ids_from_message(saved_link)
+
+        if user_ids:
+            channel = bot.get_channel(int(saved_channelmsg))
+            if channel:
+                message = await channel.send("start")
+
+                # Если есть saved_author (ID), получаем объект пользователя
+                if saved_author:
+                    saved_author = await bot.fetch_user(saved_author)
+
+                bot.loop.create_task(update_status_loop(message, user_ids, saved_link, saved_author, saved_channelmsg))
+
 
 
 # Асинхронная функция для постоянного обновления статусов игроков
@@ -411,6 +448,7 @@ async def check_status(ctx, link: str, channelmsg: str):
         saved_link = link
         saved_author = ctx.author
         saved_channelmsg = channelmsg
+        save_config()
 
         # Запускаем цикл для обновления статусов
         await update_status_loop(sent_message, user_ids, link, ctx.author, channelmsg)
