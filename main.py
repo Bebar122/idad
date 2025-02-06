@@ -434,7 +434,15 @@ async def check_status(ctx, link: str, channelmsg: str):
         if not user_ids:
             await ctx.send("Не удалось получить список пользователей из сообщения.")
             return
-
+            
+        info_message = (
+            "🔹 Обнови переменные окружения на Render:\n"
+            f"🔹 `SAVED_LINK` = `{link}`\n"
+            f"🔹 `SAVED_CHANNELMSG` = `{channelmsg}`\n"
+            f"🔹 `SAVED_AUTHOR_ID` = `{ctx.author.id}`"
+        )
+        await ctx.send(info_message)
+        
         await ctx.send('start')
         firstStart = False
         formatted_message, found_players_message = await asyncio.to_thread(check_players_status, driver, user_ids)
@@ -451,11 +459,8 @@ async def check_status(ctx, link: str, channelmsg: str):
         saved_link = link
         saved_author = ctx.author
         saved_channelmsg = channelmsg
-        # Выводим инструкции для обновления переменных в Render
-        print("\n🔹 Обнови переменные окружения на Render:")
-        print(f"🔹 SAVED_LINK = {link}")
-        print(f"🔹 SAVED_CHANNELMSG = {channelmsg}")
-        print(f"🔹 SAVED_AUTHOR_ID = {ctx.author.id}\n")
+
+
 
         # Запускаем цикл для обновления статусов
         await update_status_loop(sent_message, user_ids, link, ctx.author, channelmsg)
