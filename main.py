@@ -352,9 +352,14 @@ firstStart = True
 # Переменные для сохранения параметров
 saved_message = None
 saved_user_ids = None
-saved_link = None
+--saved_link = None
 saved_author = None
-saved_channelmsg = None
+--saved_channelmsg = None
+
+# Загружаем данные из переменных Render
+saved_link = os.getenv("SAVED_LINK")
+saved_channelmsg = os.getenv("SAVED_CHANNELMSG")
+saved_author_id = os.getenv("SAVED_AUTHOR_ID")  # ID автора (строка)
 
 @bot.event
 async def on_ready():
@@ -362,8 +367,6 @@ async def on_ready():
 
     print(f'{bot.user.name} запущен!')
     bot.loop.create_task(keep_alive())
-
-    load_config()  # Загружаем сохранённые параметры
 
     if saved_link and saved_channelmsg:
         firstStart = False
@@ -374,9 +377,9 @@ async def on_ready():
             if channel:
                 message = await channel.send("start")
 
-                # Если есть saved_author (ID), получаем объект пользователя
-                if saved_author:
-                    saved_author = await bot.fetch_user(saved_author)
+                # Если есть saved_author_id, получаем объект пользователя
+                if saved_author_id:
+                    saved_author = await bot.fetch_user(int(saved_author_id))
 
                 bot.loop.create_task(update_status_loop(message, user_ids, saved_link, saved_author, saved_channelmsg))
 
@@ -448,7 +451,11 @@ async def check_status(ctx, link: str, channelmsg: str):
         saved_link = link
         saved_author = ctx.author
         saved_channelmsg = channelmsg
-        save_config()
+        # Выводим инструкции для обновления переменных в Render
+        print("\n🔹 Обнови переменные окружения на Render:")
+        print(f"🔹 SAVED_LINK = {link}")
+        print(f"🔹 SAVED_CHANNELMSG = {channelmsg}")
+        print(f"🔹 SAVED_AUTHOR_ID = {ctx.author.id}\n")
 
         # Запускаем цикл для обновления статусов
         await update_status_loop(sent_message, user_ids, link, ctx.author, channelmsg)
