@@ -352,9 +352,9 @@ firstStart = True
 # Переменные для сохранения параметров
 saved_message = None
 saved_user_ids = None
---saved_link = None
+#saved_link = None
 saved_author = None
---saved_channelmsg = None
+#saved_channelmsg = None
 
 # Загружаем данные из переменных Render
 saved_link = os.getenv("SAVED_LINK")
