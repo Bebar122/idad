@@ -328,8 +328,8 @@ def run_server():
     httpd.serve_forever()
 
 # Запускаем HTTP-сервер в отдельном потоке
-#server_thread = threading.Thread(target=run_server)
-#server_thread.start()
+server_thread = threading.Thread(target=run_server)
+server_thread.start()
 
 
 async def keep_alive():
