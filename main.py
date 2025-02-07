@@ -222,7 +222,7 @@ def get_player_info(driver, user_id):
     
     try:
         # Устанавливаем тайм-аут загрузки страницы
-        driver.set_page_load_timeout(60)
+        driver.set_page_load_timeout(90)
         driver.get(url)
 
         # Инициализируем переменные
@@ -230,7 +230,7 @@ def get_player_info(driver, user_id):
         player_status = 'offline'
         avatar_url = None
 
-        wait = WebDriverWait(driver, 15)  # Максимальное ожидание в 15 секунд
+        wait = WebDriverWait(driver, 30)  # Максимальное ожидание в 15 секунд
 
         # Получаем имя игрока
         try:
@@ -335,12 +335,12 @@ server_thread.start()
 async def keep_alive():
     async with aiohttp.ClientSession() as session:
         while True:
-            async with session.get('https://idad.onrender.com') as response:
+            async with session.get('https://idad-1.onrender.com') as response:
                 print(f"Keep-alive response status: {response.status}")
             await asyncio.sleep(60)  # Периодичность запросов (в секундах)
 
 # Запускаем keep_alive в отдельном потоке
-#keep_alive_task = asyncio.create_task(keep_alive())
+keep_alive_task = asyncio.create_task(keep_alive())
 
 
 # Создание экземпляра бота
