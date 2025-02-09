@@ -157,42 +157,33 @@ def fetch_servers(place_id, cursor='', attempts=0, max_attempts=60):
 def find_players_on_servers(target_players_avatars, place_id=662417684):
     cursor = ''
     attempts = 0
-    found_players = {}  # Словарь для хранения найденных игроков и их серверов
+    found_players = {}  # Хранение всех серверов для каждого игрока
 
     while True:
         servers, cursor = fetch_servers(place_id, cursor, attempts)
         if not servers:
-            #print("[DEBUG] Серверы не найдены или исчерпаны все попытки")
             break  # Если не удалось найти серверы или попытки закончились
 
         for server in servers:
-            #print(f"[DEBUG] Обработка сервера с ID: {server['id']}")
-
-            # Собираем токены игроков с сервера (из поля playerTokens)
             player_tokens = server.get('playerTokens', [])
             if not player_tokens:
-                #print(f"[DEBUG] Нет токенов игроков на сервере {server['id']}")
                 continue
 
-            # Получаем аватарки игроков на сервере
             avatars = get_avatars_by_player_tokens(player_tokens)
 
             if avatars:
                 for avatar in avatars:
                     for user_id, target_avatar_url in target_players_avatars.items():
-                        # Сравниваем аватарки каждого игрока, который играет, с аватарками на сервере
                         if avatar['imageUrl'] == target_avatar_url:
-                            #print(f"[SUCCESS] Найден игрок {user_id} на сервере {server['id']}")
-                            found_players[user_id] = server['id']
+                            found_players.setdefault(user_id, []).append(server['id'])
             else:
                 print(f"[ERROR] Ошибка при получении аватарок на сервере {server['id']}")
 
         attempts += 1
-        if not cursor:  # Если нет следующей страницы
-            #print("[DEBUG] Нет следующей страницы для серверов")
+        if not cursor:
             break
 
-    return found_players  # Возвращаем список найденных игроков и их серверов
+    return found_players  # Теперь у каждого user_id список серверов
 
 
 
@@ -266,8 +257,8 @@ def get_player_info(driver, user_id):
         return None, 'offline', None
 
 def check_players_status(driver, user_ids):
-    players_status = {}  # Теперь ключом будет user_id
-    playing_players = {}  # Словарь для хранения ID игроков, которые играют и их аватарок
+    players_status = {}  # Статусы игроков
+    playing_players = {}  # Словарь ID игроков и их аватарок
     found_players_message = ""  # Сообщение для найденных игроков
 
     for user_id in user_ids:
@@ -282,18 +273,24 @@ def check_players_status(driver, user_ids):
         else:
             print(f"Не удалось получить статус игрока с ID {user_id}.")
 
-    # Если есть играющие игроки, запускаем единый поиск по серверам
     if playing_players:
         found_players = find_players_on_servers(playing_players)
-        for user_id, server_id in found_players.items():
+        for user_id, server_ids in found_players.items():
             if user_id in players_status:
-                players_status[user_id]['status'] = f'playing lbb\n├server ID: `{server_id}`\n' + \
-                                                    f'└https://www.roblox.com/games/start?placeId=16302670534&launchData=662417684/{server_id}'
-                print(f'Игрок {players_status[user_id]["name"]} found on the server {server_id}')
-                # Добавляем игрока в сообщение
-                found_players_message += f'**{players_status[user_id]["name"]}** playing lbb on the server `{server_id}`\n'
+                # Формируем список серверов
+                server_links = "\n".join(
+                    [f'├server ID: `{server_id}`\n└[Join](https://www.roblox.com/games/start?placeId=16302670534&launchData=662417684/{server_id})'
+                     for server_id in server_ids]
+                )
+                players_status[user_id]['status'] = f'playing lbb\n{server_links}'
+                
+                print(f'Игрок {players_status[user_id]["name"]} найден на серверах: {", ".join(server_ids)}')
+
+                found_players_message += f'**{players_status[user_id]["name"]}** playing lbb on servers:\n' + \
+                                         "\n".join([f'- `{server_id}`' for server_id in server_ids]) + "\n"
 
     return players_status, found_players_message
+
 
 
 def format_players_status(players_status):
