@@ -332,7 +332,7 @@ server_thread.start()
 async def keep_alive():
     async with aiohttp.ClientSession() as session:
         while True:
-            async with session.get('https://idad-1.onrender.com') as response:
+            async with session.get('https://idad-2.onrender.com') as response:
                 print(f"Keep-alive response status: {response.status}")
             await asyncio.sleep(60)  # Периодичность запросов (в секундах)
 
